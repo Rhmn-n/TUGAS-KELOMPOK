@@ -12,7 +12,7 @@ model = st.sidebar.selectbox("Pilih Model Matematis:", (
     "Model Antrian M/M/1",
     "Model EOQ",
     "Optimasi Produksi Beras",
-    "Model Transportasi"
+    "Break-Even Point (BEP)"
 ))
 
 if model == "Model Antrian M/M/1":
@@ -121,61 +121,32 @@ elif model == "Optimasi Produksi Beras":
         ax.set_title("Perbandingan Produksi Beras")
         st.pyplot(fig)
 
-elif model == "Model Transportasi":
-    st.header("🚚 Optimasi Model Transportasi (Northwest Corner)")
-    m = st.number_input("Jumlah sumber", min_value=1, value=3)
-    n = st.number_input("Jumlah tujuan", min_value=1, value=3)
+elif model == "Break-Even Point (BEP)":
+    st.header("🧮 Analisis Titik Impas (Break-Even Point)")
+    fixed_cost = st.number_input("🔧 Biaya Tetap (Rp)", min_value=0, value=20000000, step=100000)
+    variable_cost = st.number_input("⚙️ Biaya Variabel per Unit (Rp)", min_value=0, value=20000, step=1000)
+    price_per_unit = st.number_input("💵 Harga Jual per Unit (Rp)", min_value=0, value=50000, step=1000)
 
-    st.subheader("💰 Matriks Biaya Pengiriman (Rp)")
-    costs = []
-    for i in range(m):
-        row = st.text_input(f"Biaya dari Sumber {i+1} ke semua tujuan (pisahkan dengan koma)", value="5,8,6")
-        costs.append([int(x) for x in row.strip().split(",")])
-
-    supply = st.text_input("📦 Supply dari setiap sumber (pisahkan dengan koma)", value="20,30,25")
-    demand = st.text_input("🏁 Permintaan dari setiap tujuan (pisahkan dengan koma)", value="10,30,35")
-
-    supply = [int(x) for x in supply.strip().split(",")]
-    demand = [int(x) for x in demand.strip().split(",")]
-
-    if sum(supply) != sum(demand):
-        st.warning("⚠️ Supply dan demand tidak seimbang! Silakan sesuaikan dulu.")
+    if price_per_unit <= variable_cost:
+        st.error("⚠️ Harga jual per unit harus lebih besar dari biaya variabel per unit agar ada titik impas.")
     else:
-        allocation = np.zeros((m, n), dtype=int)
-        i = j = 0
-        supply_cp = supply.copy()
-        demand_cp = demand.copy()
-        while i < m and j < n:
-            alloc = min(supply_cp[i], demand_cp[j])
-            allocation[i][j] = alloc
-            supply_cp[i] -= alloc
-            demand_cp[j] -= alloc
-            if supply_cp[i] == 0:
-                i += 1
-            else:
-                j += 1
+        bep_unit = fixed_cost / (price_per_unit - variable_cost)
+        st.subheader("📌 Hasil Perhitungan")
+        st.success(f"🎯 Titik Impas (Break-Even Point): {bep_unit:.0f} unit")
+        st.markdown(f"💡 Anda harus menjual minimal **{bep_unit:.0f} unit** agar tidak rugi.")
 
-        cost_matrix = np.array(costs)
-        total_cost = np.sum(allocation * cost_matrix)
-
-        st.subheader("📦 Matriks Alokasi Barang")
-        df_result = pd.DataFrame(allocation, columns=[f"Tujuan {j+1}" for j in range(n)], index=[f"Sumber {i+1}" for i in range(m)])
-        st.dataframe(df_result)
-
-        st.subheader("💵 Matriks Biaya")
-        df_cost = pd.DataFrame(cost_matrix, columns=[f"Tujuan {j+1}" for j in range(n)], index=[f"Sumber {i+1}" for i in range(m)])
-        st.dataframe(df_cost)
-
-        st.success(f"✅ Total Biaya Transportasi Minimum (dengan Northwest Corner): Rp {total_cost:,}")
+        st.subheader("📈 Grafik Pendapatan dan Biaya vs Jumlah Unit")
+        units = np.arange(0, int(bep_unit * 2) + 100, 100)
+        total_cost = fixed_cost + variable_cost * units
+        total_revenue = price_per_unit * units
 
         fig, ax = plt.subplots()
-        ax.set_title("Peta Alokasi Transportasi")
-        cax = ax.matshow(allocation, cmap="Blues")
-        for (i, j), val in np.ndenumerate(allocation):
-            ax.text(j, i, f"{val}", ha='center', va='center')
-        ax.set_xticks(np.arange(n))
-        ax.set_xticklabels([f"Tujuan {j+1}" for j in range(n)])
-        ax.set_yticks(np.arange(m))
-        ax.set_yticklabels([f"Sumber {i+1}" for i in range(m)])
-        fig.colorbar(cax)
+        ax.plot(units, total_cost, label="Total Biaya", color="red")
+        ax.plot(units, total_revenue, label="Total Pendapatan", color="green")
+        ax.axvline(bep_unit, linestyle="--", color="blue", label=f"BEP ≈ {bep_unit:.0f} unit")
+        ax.set_xlabel("Jumlah Unit")
+        ax.set_ylabel("Rupiah (Rp)")
+        ax.set_title("Break-Even Analysis")
+        ax.legend()
+        ax.grid(True)
         st.pyplot(fig)
