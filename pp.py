@@ -102,6 +102,8 @@ elif model == "Optimasi Produksi Beras":
         y = LpVariable("Beras_Medium", lowBound=0)
         model_lp += profit_premium * x + profit_medium * y
         model_lp += premium_gabah * x + medium_gabah * y <= total_gabah
+        min_premium_kg = 0.2 * total_gabah / premium_gabah
+        model_lp += x >= min_premium_kg
         model_lp.solve()
         x_val = x.varValue
         y_val = y.varValue
