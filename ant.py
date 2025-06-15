@@ -107,7 +107,7 @@ elif model == "Optimasi Produksi Beras":
     **Penjelasan Singkat**  
     Model ini menggunakan Linear Programming untuk memaksimalkan keuntungan dari produksi dua jenis beras: Premium dan Medium.  
     **Model Tujuan:**  
-    Maksimalkan Z = Profit_Premium × x + Profit_Medium × y  
+    Maksimalkan Z = 40x + 60y  
     **Kendala:**  
     - Konsumsi gabah: (Gabah_Premium × x + Gabah_Medium × y) ≤ Total Gabah  
     - Produksi Premium minimal 20%  
@@ -116,35 +116,36 @@ elif model == "Optimasi Produksi Beras":
 
     total_gabah = st.number_input("Jumlah Gabah Tersedia (kg)", min_value=0.0, value=10000.0)
 
-    st.subheader("⚙️ Data Beras Premium")
+    st.subheader("⚙️ Data Konversi Gabah")
     premium_gabah = st.number_input("Gabah/kg untuk Beras Premium", min_value=0.1, value=1.2)
-    premium_harga = st.number_input("Harga Jual/kg Beras Premium (Rp)", value=12000)
-    premium_biaya = st.number_input("Biaya Produksi/kg Beras Premium (Rp)", value=6000)
-
-    st.subheader("⚙️ Data Beras Medium")
     medium_gabah = st.number_input("Gabah/kg untuk Beras Medium", min_value=0.1, value=1.0)
-    medium_harga = st.number_input("Harga Jual/kg Beras Medium (Rp)", value=9000)
-    medium_biaya = st.number_input("Biaya Produksi/kg Beras Medium (Rp)", value=5000)
 
     if st.button("🚀 Hitung Optimasi"):
-        profit_premium = premium_harga - premium_biaya
-        profit_medium = medium_harga - medium_biaya
+        from pulp import LpMaximize, LpProblem, LpVariable
+
+        # Buat model LP
         model_lp = LpProblem("Optimasi_Produksi_Beras", LpMaximize)
         x = LpVariable("Beras_Premium", lowBound=0)
         y = LpVariable("Beras_Medium", lowBound=0)
-        model_lp += profit_premium * x + profit_medium * y
-        model_lp += premium_gabah * x + medium_gabah * y <= total_gabah
-        min_premium_kg = 0.2 * total_gabah / premium_gabah
-        model_lp += x >= min_premium_kg
+
+        # Fungsi Objektif: Z = 40x + 60y
+        model_lp += 40 * x + 60 * y
+
+        # Kendala:
+        model_lp += premium_gabah * x + medium_gabah * y <= total_gabah  # Batas gabah
+        model_lp += x >= (0.2 * total_gabah / premium_gabah)             # Min 20% premium
+
+        # Selesaikan model
         model_lp.solve()
+
         x_val = x.varValue
         y_val = y.varValue
-        total_profit = profit_premium * x_val + profit_medium * y_val
+        total_profit = 40 * x_val + 60 * y_val
 
         st.subheader("📈 Hasil Optimasi Produksi")
         st.success(f"✅ Produksi Beras Premium: {x_val:.2f} kg")
         st.success(f"✅ Produksi Beras Medium: {y_val:.2f} kg")
-        st.success(f"💰 Total Keuntungan Maksimum: Rp {total_profit:,.0f}")
+        st.success(f"💰 Total Keuntungan Maksimum (Z): Rp {total_profit:,.0f}")
 
         st.subheader("📊 Grafik Produksi")
         fig, ax = plt.subplots()
@@ -152,6 +153,7 @@ elif model == "Optimasi Produksi Beras":
         ax.set_ylabel("Jumlah Produksi (kg)")
         ax.set_title("Perbandingan Produksi Beras")
         st.pyplot(fig)
+
 
 elif model == "Break-Even Point (BEP)":
     st.header("🧮 Analisis Titik Impas (Break-Even Point)")
@@ -189,3 +191,4 @@ elif model == "Break-Even Point (BEP)":
         ax.legend()
         ax.grid(True)
         st.pyplot(fig)
+
